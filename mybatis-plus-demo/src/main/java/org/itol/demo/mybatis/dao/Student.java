@@ -1,4 +1,4 @@
-package com.itol.demo.mybatis.dao;
+package org.itol.demo.mybatis.dao;
 
 
 import com.baomidou.mybatisplus.annotation.IdType;

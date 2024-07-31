@@ -1,7 +1,7 @@
-package com.itol.demo.mysql.controller;
+package org.itol.demo.mysql.controller;
 
-import com.itol.demo.mysql.dao.Student;
-import com.itol.demo.mysql.service.StudentService;
+import org.itol.demo.mysql.dao.Student;
+import org.itol.demo.mysql.service.StudentService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

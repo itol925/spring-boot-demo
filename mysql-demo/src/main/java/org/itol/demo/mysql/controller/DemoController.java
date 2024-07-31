@@ -1,4 +1,4 @@
-package com.itol.demo.mysql.controller;
+package org.itol.demo.mysql.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;

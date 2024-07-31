@@ -1,12 +1,13 @@
-package com.itol.demo.mybatis.controller;
+package org.itol.demo.mybatis.controller;
 
-import com.itol.demo.mybatis.dao.Student;
-import com.itol.demo.mybatis.mapper.StudentMapper;
 import jakarta.annotation.Resource;
+import org.itol.demo.mybatis.dao.Student;
+import org.itol.demo.mybatis.mapper.StudentMapper;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class StudentController {

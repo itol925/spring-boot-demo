@@ -1,4 +1,4 @@
-package com.itol.demo.mysql.dao;
+package org.itol.demo.mysql.dao;
 
 import jakarta.persistence.*;
 

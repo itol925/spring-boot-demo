@@ -1,7 +1,7 @@
-package com.itol.demo.mysql.service;
+package org.itol.demo.mysql.service;
 
-import com.itol.demo.mysql.dao.Student;
-import com.itol.demo.mysql.dao.StudentRepository;
+import org.itol.demo.mysql.dao.Student;
+import org.itol.demo.mysql.dao.StudentRepository;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
