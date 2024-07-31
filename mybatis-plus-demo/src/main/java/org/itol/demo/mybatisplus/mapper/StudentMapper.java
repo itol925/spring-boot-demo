@@ -1,7 +1,7 @@
-package org.itol.demo.mybatis.mapper;
+package org.itol.demo.mybatisplus.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import org.itol.demo.mybatis.dao.Student;
+import org.itol.demo.mybatisplus.dao.Student;
 
 public interface StudentMapper extends BaseMapper<Student> {
 }
