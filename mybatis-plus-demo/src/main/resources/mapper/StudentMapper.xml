@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.itol.demo.mybatisplus.mapper.StudentMapper">
+    <select id="queryStudentByName" resultType="org.itol.demo.mybatisplus.dao.Student">
+        select * from student where name=#{name}
+    </select>
+
+    <update id="updateBuCustomSQL">
+        update student set age = age + #{age} ${ew.customSqlSegment}
+    </update>
+</mapper>
