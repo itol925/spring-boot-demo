@@ -1,9 +1,11 @@
 package org.itol.demo.mysql.dao;
 
 import jakarta.persistence.*;
+import lombok.Data;
 
 @Entity
 @Table(name = "student")
+@Data
 public class Student {
     @Id
     @Column(name = "id")

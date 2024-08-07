@@ -12,7 +12,7 @@ public class StudentController {
     @Resource
     private StudentService studentService;
 
-    @GetMapping("/student/{id}")
+    @GetMapping(value = "/student/{id}", produces = "application/json; charset=utf-8")
     public Student getById(@PathVariable long id) {
         return studentService.getStudentById(id);
     }
