@@ -80,9 +80,9 @@ public class StudentMapperTest {
     @Test
     public void insert() {
         Student student = new Student();
-        student.setName("Lucy");
-        student.setAge(34);
-        student.setEmail("ly@qq.com");
+        student.setName("王二小");
+        student.setAge(18);
+        student.setEmail("wex@qq.com");
         studentMapper.insert(student);
     }
 }
