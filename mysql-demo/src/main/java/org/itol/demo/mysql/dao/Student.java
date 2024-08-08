@@ -10,7 +10,7 @@ public class Student {
     @Id
     @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
     @Column(name = "name")
     private String name;
@@ -19,5 +19,5 @@ public class Student {
     private String email;
 
     @Column(name = "age")
-    private long age;
+    private Long age;
 }
