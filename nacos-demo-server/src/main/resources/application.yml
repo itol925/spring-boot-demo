@@ -1,6 +1,6 @@
 spring:
   application:
-    name: nacos-demo-service
+    name: nacos-demo-service # 将服务注册到 nacos，指定服务名为 nacos-demo-service
   cloud:
     nacos:
       server-addr: 10.211.55.10:8848
