@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: nacos-demo-service
+  cloud:
+    nacos:
+      server-addr: 10.211.55.10:8848
+server:
+  port: 8090

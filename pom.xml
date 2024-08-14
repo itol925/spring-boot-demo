@@ -6,6 +6,8 @@
 	<modules>
 		<module>mysql-demo</module>
 		<module>mybatis-plus-demo</module>
+		<module>nacos-demo-server</module>
+		<module>nacos-demo-client</module>
 	</modules>
 
 	<parent>
@@ -25,6 +27,7 @@
 	</properties>
 
 	<dependencies>
+		<!-- spring boot -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
@@ -43,6 +46,24 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+	<dependencyManagement>
+		<dependencies>
+			<!-- spring cloud -->
+<!--			<dependency>-->
+<!--				<groupId>org.springframework.cloud</groupId>-->
+<!--				<artifactId>spring-cloud-dependencies</artifactId>-->
+<!--				<version>2023.0.3</version>-->
+<!--				<type>pom</type>-->
+<!--				<scope>import</scope>-->
+<!--			</dependency>-->
+<!--			<dependency>-->
+<!--				<groupId>com.alibaba.cloud</groupId>-->
+<!--				<artifactId>spring-cloud-alibaba-dependencies</artifactId>-->
+<!--				<version>2023.0.1.2</version>-->
+<!--				<type>pom</type>-->
+<!--			</dependency>-->
+		</dependencies>
+	</dependencyManagement>
 	<build>
 		<plugins>
 			<plugin>

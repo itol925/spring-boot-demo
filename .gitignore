@@ -2,3 +2,5 @@
 /mysql-demo/target/
 /.idea/
 .DS_Store
+/nacos-demo-server/target/
+/nacos-demo-client/target/
