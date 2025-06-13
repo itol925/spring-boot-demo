@@ -20,8 +20,18 @@ public class TestService {
     @Resource
     private DiscoveryClient discoveryClient;
 
+    @Resource
+    private TestOpenFeign testOpenFeign;
+
     @PostConstruct
     public void init() {
+        helloUseDiscovery();
+
+        helloUseOpenFeign();
+    }
+
+
+    private void helloUseDiscovery() {
         List<ServiceInstance> serviceInstanceList = discoveryClient.getInstances("nacos-demo-service");
         if (CollectionUtils.isEmpty(serviceInstanceList)) {
             throw new RuntimeException("no available service:nacos-demo-service");
@@ -29,9 +39,19 @@ public class TestService {
         ServiceInstance instance = serviceInstanceList.get(new Random().nextInt(serviceInstanceList.size()));
         ResponseEntity<String> response = template.exchange(instance.getUri() + "/hello", HttpMethod.GET, null, String.class);
         if (response.getStatusCode().is2xxSuccessful()) {
-            System.out.println("succeed:" + response.getBody());
+            String hello = response.getBody();
+            System.out.println("succeed:" + hello);
         } else {
             System.out.println("failed");
+        }
+    }
+
+    private void helloUseOpenFeign() {
+        try {
+            String hello = testOpenFeign.hello();
+            System.out.println("succeed:" + hello);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
     }
 }
