@@ -10,6 +10,8 @@
 		<module>nacos-demo-client</module>
         <module>jraft-demo</module>
         <module>prometheus-demo</module>
+		<module>app-demo</module>
+        <module>http-demo</module>
     </modules>
 
 	<parent>
