@@ -1,47 +1,44 @@
 #!/bin/bash
 
 SCRIPT=$1
-URL=$2
-PAYLOAD=$3
-HEADERS=$4
-DURATION=$5
-VUS=$6
-MAX_VUS=$7
-QPS_LIST=$8
-OUTDIR=$9
+ADDR=$2
+REQUESTS=$3
+DURATION=$4
+VUS=$5
+MAX_VUS=$6
+QPSs=$7
+OUT_DIR=$8
 
 #echo "SCRIPT: $SCRIPT"
-echo "URL: $URL"
-echo "PAYLOAD: $PAYLOAD"
-echo "HEADERS: $HEADERS"
+echo "ADDR: $ADDR"
+echo "REQUESTS: $REQUESTS"
 echo "DURATION: $DURATION"
 echo "VUS: $VUS"
 echo "MAX_VUS: $MAX_VUS"
-echo "QPS_LIST: $QPS_LIST"
-echo "OUTDIR: $OUTDIR"
+echo "QPSs: $QPSs"
+echo "OUT_DIR: $OUT_DIR"
 
-if [ -n "$OUTDIR" ]; then
-    mkdir -p "$OUTDIR"
-fi
-
-# 判断是否指定了 OUTDIR
-if [ -n "$OUTDIR" ]; then
-    OUTFILE="${OUTDIR}/qps_${QPS}.json"
-    SUMMARY_ARG="--summary-export=$OUTFILE"
-else
-    SUMMARY_ARG=""
+if [ -n "$OUT_DIR" ]; then
+    mkdir -p "$OUT_DIR"
 fi
 
 echo "开始压测所有 QPS 配置..."
 
-for QPS in ${QPS_LIST[@]}; do
+for QPS in ${QPSs[@]}; do
     echo "--------------------------------------"
     echo "开始压测：QPS = $QPS"
 
+    # 判断是否指定了 $OUT_DIR
+    if [ -n "$OUTDIR" ]; then
+        OUTFILE="${$OUT_DIR}/qps_${QPS}.json"
+        SUMMARY_ARG="--summary-export=$OUTFILE"
+    else
+        SUMMARY_ARG=""
+    fi
+
     k6 run "$SCRIPT" \
-        --env TARGET_URL="$URL" \
-        --env PAYLOAD="$PAYLOAD" \
-        --env HEADERS="$HEADERS" \
+        --env ADDR="$ADDR" \
+        --env REQUESTS="$REQUESTS" \
         --env QPS="$QPS" \
         --env DURATION="$DURATION" \
         --env VUS="$VUS" \

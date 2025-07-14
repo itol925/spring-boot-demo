@@ -2,6 +2,7 @@ package org.itol.demo.http.client.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.*;
@@ -71,37 +72,52 @@ public class K6TestUtils {
         List<String> command = new ArrayList<>();
         command.add("bash");
         command.add(shellPath);
-        command.add(scriptPath);
-        if (!StringUtils.hasText(option.getUrl())) {
-            throw new IllegalArgumentException("url is empty");
+        command.add(scriptPath); // #1 第一个参数
+
+        if (!StringUtils.hasText(option.getAddr())) {
+            throw new IllegalArgumentException("addr is empty");
         }
-        command.add(option.getUrl());
-        command.add(mapper.writeValueAsString(option.getPayload()));
-        command.add(mapper.writeValueAsString(option.getHeader()));
+        command.add(option.getAddr()); // #2
+
+        if (CollectionUtils.isEmpty(option.getRequests())) {
+            throw new IllegalArgumentException("request is empty");
+        }
+        int totalRatio = option.getRequests().get(0).ratio;
+        for (int i = 1; i < option.getRequests().size(); i++) {
+            int addRatio = option.getRequests().get(i).ratio;
+            option.getRequests().get(i).ratio += totalRatio;
+            totalRatio += addRatio;
+        }
+        command.add(mapper.writeValueAsString(option.getRequests())); // #3
+
         if (option.getDuration() == null) {
             throw new IllegalArgumentException("duration is null");
         }
-        command.add(option.getDuration().toString() + "s");
+        command.add(option.getDuration().toString()); // #4
+
         if (option.getVus() == null) {
             throw new IllegalArgumentException("vu（虚拟用户数） is null");
         }
-        command.add(option.getVus().toString());
+        command.add(option.getVus().toString()); // #5
+
         if (option.getMaxVus() == null) {
             option.setMaxVus(option.getVus());
         }
-        command.add(option.getMaxVus().toString());
+        command.add(option.getMaxVus().toString()); // #6
+
         String qpsList = "";
-        for (int i = 0; i < option.getQpsList().size(); i++) {
-            qpsList += option.getQpsList().get(i).toString();
-            if (i < option.getQpsList().size() - 1) {
+        for (int i = 0; i < option.getQps().size(); i++) {
+            qpsList += option.getQps().get(i).toString();
+            if (i < option.getQps().size() - 1) {
                 qpsList += " ";
             }
         }
         if (qpsList.equals("")) {
             throw new IllegalArgumentException("qps is empty");
         }
-        command.add(qpsList);
-        command.add(option.getOutDir());
+        command.add(qpsList); // #7
+
+        command.add(option.getOutDir()); // #8
         return command;
     }
 
@@ -153,284 +169,19 @@ public class K6TestUtils {
     }
 
     private static String httpGetScript() {
-        return """
-             import http from 'k6/http';
-             import { check } from 'k6';
-             import { Trend } from 'k6/metrics';
-                            
-             // 读取环境变量参数
-             const url = __ENV.TARGET_URL;
-             const payload = __ENV.PAYLOAD;
-                            
-             let headers = {
-                 'Content-Type': 'application/json',
-             };
-             if (__ENV.HEADERS) {
-                 try {
-                     headers = JSON.parse(__ENV.HEADERS);
-                 } catch (e) {
-                     console.error('HEADERS 不是有效的 JSON');
-                 }
-             }
-                            
-             const QPS = Number(__ENV.QPS || '100');
-             const DURATION = __ENV.DURATION || '10s';
-             const VUS = Number(__ENV.VUS || '100');
-             const MAX_VUS = Number(__ENV.MAX_VUS || '200');
-                            
-             const latencyTrend = new Trend('http_get_latency');
-             // 配置场景
-             export const options = {
-                 scenarios: {
-                     dynamic_qps: {
-                         executor: 'constant-arrival-rate',
-                         rate: QPS,
-                         timeUnit: '1s',
-                         duration: DURATION,
-                         preAllocatedVUs: VUS,
-                         maxVUs: MAX_VUS,
-                     },
-                 },
-                 thresholds: {
-                     'http_get_latency': ['p(95)<1000', 'p(99)<2000'],
-                 },
-             };
-                            
-             export default function () {
-                 const res = http.get(url, { "headers" : headers });
-                 // console.log(JSON.stringify(res))
-                 latencyTrend.add(res.timings.duration);
-                 const msg = JSON.parse(res.body);
-                 check(msg, { 'errorCode = 0': (m) => m && m.errorCode === 0 });
-                 check(res, {
-                     'status = 200': (r) => r.status === 200,
-                 });
-             }
-            """;
+        return ResourceReader.read("scripts/http-get.js");
     }
 
     private static String httpPostScript() {
-        return """
-             import http from 'k6/http';
-             import { check } from 'k6';
-             import { Trend } from 'k6/metrics';
-                            
-             // 读取环境变量参数
-             const url = __ENV.TARGET_URL;
-             const payload = __ENV.PAYLOAD;
-                            
-             let headers = {
-                 'Content-Type': 'application/json',
-             };
-             if (__ENV.HEADERS) {
-                 try {
-                     headers = JSON.parse(__ENV.HEADERS);
-                 } catch (e) {
-                     console.error('HEADERS 不是有效的 JSON');
-                 }
-             }
-                            
-             const QPS = Number(__ENV.QPS || '100');
-             const DURATION = __ENV.DURATION || '10s';
-             const VUS = Number(__ENV.VUS || '100');
-             const MAX_VUS = Number(__ENV.MAX_VUS || '200');
-                            
-             const latency = new Trend('custom_latency');
-             // 配置场景
-             export const options = {
-                 scenarios: {
-                     dynamic_qps: {
-                         executor: 'constant-arrival-rate',
-                         rate: QPS,
-                         timeUnit: '1s',
-                         duration: DURATION,
-                         preAllocatedVUs: VUS,
-                         maxVUs: MAX_VUS,
-                     },
-                 },
-                 thresholds: {
-                     'custom_latency': ['p(95)<1000', 'p(99)<2000'],
-                 },
-             };
-                            
-             export default function () {
-                 const res = http.post(url, payload, { headers });
-                 const msg = JSON.parse(res.body);
-                 check(msg, { 'errorCode = 0': (m) => m && m.errorCode === 0 });
-                 //console.log('--------' + msg.errorCode);
-                 latency.add(res.timings.duration);
-                 check(res, {
-                     'status = 200': (r) => r.status === 200,
-                 });
-             }
-             """;
+        return ResourceReader.read("scripts/http-post.js");
     }
 
     private static String webSocketScript() {
-        return """
-             import ws from 'k6/ws';
-             import { check } from 'k6';
-             import { Trend } from 'k6/metrics';
-                            
-             export const options = {
-                 scenarios: {
-                     websocket_load: {
-                         executor: 'per-vu-iterations',
-                         vus: parseInt(__ENV.VUS || '1'),
-                         iterations: 1,
-                         maxDuration: __ENV.DURATION || '10s',
-                     }
-                 }
-             };
-                            
-             const URL = __ENV.TARGET_URL;
-             const VUS = parseInt(__ENV.VUS || '1');
-             const QPS = parseInt(__ENV.QPS || '1');
-             const PAYLOAD_TEMPLATE = __ENV.PAYLOAD;
-                            
-             // 统计延迟的趋势对象
-             const latencyTrend = new Trend('ws_latency', true);
-                            
-             export default function () {
-                 console.log("--------- run default function")
-                 const connectionQPS = QPS / VUS;
-                 const intervalSeconds = 1 / connectionQPS;
-                            
-                 const res = ws.connect(URL, {}, function (socket) {
-                     const sendTimes = new Map();
-                     let seq = 0;
-                            
-                     socket.on('open', () => {
-                         console.log(`VU ${__VU} 已连接, intervalSeconds=` + intervalSeconds);
-                         // 设置定时发送消息
-                         socket.setInterval(() => {
-                             const requestNo = seq++;
-                             const payload = injectRequestNo(PAYLOAD_TEMPLATE, requestNo);
-                            
-                             sendTimes.set(requestNo, Date.now());
-                             socket.send(payload);
-                             // console.log("send << " + requestNo);
-                         }, intervalSeconds * 1000); // 发送间隔（秒）
-                            
-                         socket.setTimeout(() => {
-                             socket.close();
-                             console.log(`VU ${__VU} 超时关闭连接`);
-                         }, 5000);
-                     });
-                            
-                     // 接收响应并记录延迟
-                     socket.on('message', (data) => {
-                         try {
-                             const msg = JSON.parse(data);
-                             check(msg, { 'errorCode = 0': (m) => m && m.errorCode === 0 });
-                            
-                             const reqNo = msg.requestNo;
-                             // console.log("recv >> " + reqNo);
-                             const sendTime = sendTimes.get(reqNo);
-                             if (sendTime) {
-                                 const latency = Date.now() - sendTime;
-                                 latencyTrend.add(latency);
-                                 sendTimes.delete(reqNo);
-                             } else {
-                                 // console.warn(`未找到 RequestNo: ${reqNo}`);
-                             }
-                         } catch (e) {
-                             console.error(`响应解析失败: ${e.message}`);
-                         }
-                     });
-                            
-                     socket.on('close', () => {
-                         console.log(`VU ${__VU} 连接已关闭 reqNo:` + seq);
-                     });
-                            
-                     socket.on('error', (e) => {
-                         console.error(`VU ${__VU} 连接出错: ${e.error()}`);
-                     });
-                            
-                     socket.setInterval(() => {
-                         const now = Date.now();
-                         const TTL = 30000; // 超过 30s 的记录就清掉
-                            
-                         for (const [reqNo, sendTime] of sendTimes.entries()) {
-                             if (now - sendTime > TTL) {
-                                 sendTimes.delete(reqNo);
-                             }
-                         }
-                     }, 5000); // 发送间隔（秒）
-                 });
-                            
-                 check(res, { 'status = 101': (r) => r && r.status === 101 });
-             }
-             // 将 payload 插入 RequestNo 字段
-             function injectRequestNo(payload, requestNo) {
-                 let obj = {};
-                 try {
-                     obj = JSON.parse(payload);
-                 } catch (e) {
-                     console.error("payload 不是合法 JSON");
-                 }
-                 obj.RequestNo = requestNo;
-                 return JSON.stringify(obj);
-             }
-             """;
+        return ResourceReader.read("scripts/websocket.js");
     }
 
     private static String shellScript() {
-        return """
-             #!/bin/bash
-                        
-             SCRIPT=$1
-             URL=$2
-             PAYLOAD=$3
-             HEADERS=$4
-             DURATION=$5
-             VUS=$6
-             MAX_VUS=$7
-             QPS_LIST=$8
-             OUTDIR=$9
-                        
-             #echo "SCRIPT: $SCRIPT"
-             echo "URL: $URL"
-             echo "PAYLOAD: $PAYLOAD"
-             echo "HEADERS: $HEADERS"
-             echo "DURATION: $DURATION"
-             echo "VUS: $VUS"
-             echo "MAX_VUS: $MAX_VUS"
-             echo "QPS_LIST: $QPS_LIST"
-             echo "OUTDIR: $OUTDIR"
-                        
-             if [ -n "$OUTDIR" ]; then
-                 mkdir -p "$OUTDIR"
-             fi
-                        
-             # 判断是否指定了 OUTDIR
-             if [ -n "$OUTDIR" ]; then
-                 OUTFILE="${OUTDIR}/qps_${QPS}.json"
-                 SUMMARY_ARG="--summary-export=$OUTFILE"
-             else
-                 SUMMARY_ARG=""
-             fi
-                        
-             echo "开始压测所有 QPS 配置..."
-                        
-             for QPS in ${QPS_LIST[@]}; do
-                 echo "--------------------------------------"
-                 echo "开始压测：QPS = $QPS"
-                        
-                 k6 run "$SCRIPT" \\
-                     --env TARGET_URL="$URL" \\
-                     --env PAYLOAD="$PAYLOAD" \\
-                     --env HEADERS="$HEADERS" \\
-                     --env QPS="$QPS" \\
-                     --env DURATION="$DURATION" \\
-                     --env VUS="$VUS" \\
-                     --env MAX_VUS="$MAX_VUS" \\
-                     $SUMMARY_ARG
-                 echo
-             done
-                        
-             echo "执行结束!"   
-            """;
+        return ResourceReader.read("scripts/k6-run.sh");
     }
 
     private static String installK6Script() {
@@ -476,7 +227,7 @@ public class K6TestUtils {
     }
 
     @Data
-    public static class TestOption {
+    public static class TestOption implements Serializable {
         /**
          * 请求类型
          * 1 http post 接口
@@ -487,24 +238,18 @@ public class K6TestUtils {
 
         /**
          * 请求的url
-         * eg http post：http://127.0.0.1:10030/action/v1.0/SendQryOne/Order
-         * eg http get: http://127.0.0.1:10030/query/v1.0/CanceledOrder?MemberID=004a05ee-d7e6-44bb-b238-3feb205de1d0
+         * eg http post：http://127.0.0.1:10030
+         * eg http get: http://127.0.0.1:10030
          * eg websocket: ws://127.0.0.1:11000
          */
-        private String url;
+        private String addr;
 
         /**
-         * 请求体
+         * 请求参数，包括payload 和 header
          * eg: {"OrderSysID":"1000565760833093"}
          * eg: {"RequestNo":2,"SendQryOrder":{"OrderID":"1000565760833093"}}
          */
-        private Map<String, Object> payload;
-
-        /**
-         * 请求头
-         * eg: {"Content-Type":"application/json"}
-         */
-        private Map<String, Object> header;
+        private List<Request> requests;
 
         /**
          * 压测持续时间
@@ -528,7 +273,7 @@ public class K6TestUtils {
          * 比如qps为100，vu为2，那每个vu分配到的qps为50
          * 支持输入一个qps list，每个qps压测duration时长
          */
-        private List<Integer> qpsList;
+        private List<Integer> qps;
 
         /**
          * 输出报告目录
@@ -536,5 +281,32 @@ public class K6TestUtils {
          * 为空的话，报告输出到控制台，内容由testAPI函数以string类型返回
          */
         private String outDir;
+
+        @Data
+        public static class Request implements Serializable {
+            /**
+             * 执行频率
+             */
+            private Integer ratio;
+            /**
+             * 请求的path
+             * eg http post：/action/v1.0/SendQryOne/Order
+             * eg http get: /query/v1.0/CanceledOrder?MemberID=004a05ee-d7e6-44bb-b238-3feb205de1d0
+             * eg websocket: 不需要path参数
+             */
+            private String path;
+            /**
+             * 请求体
+             * eg: {"OrderSysID":"1000565760833093"}
+             * eg: {"RequestNo":2,"SendQryOrder":{"OrderID":"1000565760833093"}}
+             */
+            private Map<String, Object> payload;
+
+            /**
+             * 请求头
+             * eg: {"Content-Type":"application/json"}
+             */
+            private Map<String, Object> header;
+        }
     }
 }

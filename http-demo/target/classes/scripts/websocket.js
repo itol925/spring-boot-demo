@@ -8,25 +8,26 @@ export const options = {
             executor: 'per-vu-iterations',
             vus: parseInt(__ENV.VUS || '1'),
             iterations: 1,
-            maxDuration: __ENV.DURATION || '10s',
+            maxDuration: __ENV.DURATION + 's' || '10s',
         }
     }
 };
 
-const URL = __ENV.TARGET_URL;
+const ADDR = __ENV.ADDR;
 const VUS = parseInt(__ENV.VUS || '1');
 const QPS = parseInt(__ENV.QPS || '1');
-const PAYLOAD_TEMPLATE = __ENV.PAYLOAD;
+const REQUESTS = JSON.parse(__ENV.REQUESTS);
+const totalRatio = REQUESTS[REQUESTS.length - 1].ratio;
 
 // 统计延迟的趋势对象
 const latencyTrend = new Trend('ws_latency', true);
+const errLogMap = new Map();
 
 export default function () {
-    console.log("--------- run default function")
     const connectionQPS = QPS / VUS;
     const intervalSeconds = 1 / connectionQPS;
 
-    const res = ws.connect(URL, {}, function (socket) {
+    const res = ws.connect(ADDR, {}, function (socket) {
         const sendTimes = new Map();
         let seq = 0;
 
@@ -34,18 +35,19 @@ export default function () {
             console.log(`VU ${__VU} 已连接, intervalSeconds=` + intervalSeconds);
             // 设置定时发送消息
             socket.setInterval(() => {
+                const request = getRequest(seq);
                 const requestNo = seq++;
-                const payload = injectRequestNo(PAYLOAD_TEMPLATE, requestNo);
+                const payload = injectRequestNo(request.payload, requestNo);
 
                 sendTimes.set(requestNo, Date.now());
                 socket.send(payload);
-                // console.log("send << " + requestNo);
+                console.log("send << " + requestNo + ", action:" + payload);
             }, intervalSeconds * 1000); // 发送间隔（秒）
 
             socket.setTimeout(() => {
                 socket.close();
-                console.log(`VU ${__VU} 超时关闭连接`);
-            }, 5000);
+                console.log(`VU ${__VU} 时间到。关闭连接`);
+            }, __ENV.DURATION * 1000);
         });
 
         // 接收响应并记录延迟
@@ -53,6 +55,14 @@ export default function () {
             try {
                 const msg = JSON.parse(data);
                 check(msg, { 'errorCode = 0': (m) => m && m.errorCode === 0 });
+
+                // catch error log
+                if (msg && msg.errorCode !== 0) {
+                    if (!errLogMap.has(msg.errorCode)) {
+                        errLogMap.set(msg.errorCode, msg);
+                        console.log('<<<< Error:errorCode=' + msg.errorCode + ", data=" + JSON.stringify(msg))
+                    }
+                }
 
                 const reqNo = msg.requestNo;
                 // console.log("recv >> " + reqNo);
@@ -62,7 +72,7 @@ export default function () {
                     latencyTrend.add(latency);
                     sendTimes.delete(reqNo);
                 } else {
-                    // console.warn(`未找到 RequestNo: ${reqNo}`);
+                    console.warn(`未找到 RequestNo: ${reqNo}`);
                 }
             } catch (e) {
                 console.error(`响应解析失败: ${e.message}`);
@@ -86,19 +96,23 @@ export default function () {
                     sendTimes.delete(reqNo);
                 }
             }
-        }, 5000); // 发送间隔（秒）
+        }, 5000);
     });
 
     check(res, { 'status = 101': (r) => r && r.status === 101 });
 }
 // 将 payload 插入 RequestNo 字段
 function injectRequestNo(payload, requestNo) {
-    let obj = {};
-    try {
-        obj = JSON.parse(payload);
-    } catch (e) {
-        console.error("payload 不是合法 JSON");
+    payload.RequestNo = requestNo;
+    return JSON.stringify(payload);
+}
+
+function getRequest(n) {
+    let r = n % totalRatio;
+    for (const request of REQUESTS) {
+        if (r < request.ratio) {
+            return request;
+        }
     }
-    obj.RequestNo = requestNo;
-    return JSON.stringify(obj);
+    return null;
 }

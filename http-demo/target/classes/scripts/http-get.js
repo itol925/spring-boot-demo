@@ -2,25 +2,14 @@ import http from 'k6/http';
 import { check } from 'k6';
 import { Trend } from 'k6/metrics';
 
-// 读取环境变量参数
-const url = __ENV.TARGET_URL;
-const payload = __ENV.PAYLOAD;
-
-let headers = {
-    'Content-Type': 'application/json',
-};
-if (__ENV.HEADERS) {
-    try {
-        headers = JSON.parse(__ENV.HEADERS);
-    } catch (e) {
-        console.error('HEADERS 不是有效的 JSON');
-    }
-}
-
-const QPS = Number(__ENV.QPS || '100');
-const DURATION = __ENV.DURATION || '10s';
-const VUS = Number(__ENV.VUS || '100');
+const ADDR = __ENV.ADDR;
+const VUS = parseInt(__ENV.VUS || '1');
+const QPS = parseInt(__ENV.QPS || '1');
+const DURATION = (__ENV.DURATION + 's') || '10s';
 const MAX_VUS = Number(__ENV.MAX_VUS || '200');
+
+const REQUESTS = JSON.parse(__ENV.REQUESTS);
+const totalRatio = REQUESTS[REQUESTS.length - 1].ratio;
 
 const latencyTrend = new Trend('http_get_latency');
 // 配置场景
@@ -39,14 +28,34 @@ export const options = {
         'http_get_latency': ['p(95)<1000', 'p(99)<2000'],
     },
 };
+const errLogMap = new Map();
 
 export default function () {
-    const res = http.get(url, { "headers" : headers });
-    // console.log(JSON.stringify(res))
+    const request = getRequest(__ITER);
+    const url = ADDR + request.path;
+    const res = http.get(url, request.header);
     latencyTrend.add(res.timings.duration);
     const msg = JSON.parse(res.body);
     check(msg, { 'errorCode = 0': (m) => m && m.errorCode === 0 });
+    // catch error log
+    if (msg && msg.errorCode !== 0) {
+        if (!errLogMap.has(msg.errorCode)) {
+            errLogMap.set(msg.errorCode, msg);
+            console.log('<<<< Error:errorCode=' + msg.errorCode + ", data=" + JSON.stringify(msg))
+        }
+    }
+
     check(res, {
         'status = 200': (r) => r.status === 200,
     });
+}
+
+function getRequest(n) {
+    let r = n % totalRatio;
+    for (const request of REQUESTS) {
+        if (r < request.ratio) {
+            return request;
+        }
+    }
+    return null;
 }
